@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* Leaflet Tactical Custom Marker & Container Styling */
+.tactical-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-container {
+  background-color: transparent !important;
+  font-family: inherit;
+}
+

@@ -1,0 +1,266 @@
+import { LanguageCode } from '../types/settings';
+
+export const TRANSLATIONS = {
+  en: {
+    appTitle: 'Arma Reforger Mortar FCS',
+    appSubtitle: 'Next-Gen Fire Control System',
+    
+    // Status & HUD
+    statusValid: 'VALID DATA',
+    statusOutOfRange: 'OUT OF RANGE',
+    statusLimitExceeded: 'ELEVATION LIMIT EXCEEDED',
+    statusNoData: 'NO VERIFIED DATA',
+    statusIncomplete: 'INCOMPLETE BALLISTIC TABLE',
+    statusIdentical: 'IDENTICAL POSITION',
+    statusInterpolated: 'INTERPOLATED',
+    
+    // Measurements
+    elevation: 'ELEVATION',
+    bearing: 'BEARING',
+    distance: 'DISTANCE',
+    slantRange: 'SLANT RANGE',
+    timeOfFlight: 'TIME OF FLIGHT',
+    tofAbbr: 'ToF',
+    altDiff: 'ALTITUDE DIFF',
+    targetAlt: 'TGT ALT',
+    mortarAlt: 'MTR ALT',
+    peakAlt: 'PEAK ALT',
+    impactAngle: 'IMPACT ANGLE',
+    dispersion: 'DISPERSION',
+    
+    // Mortar & Ammo
+    mortar: 'Mortar',
+    target: 'Target',
+    activeMortar: 'Active Mortar',
+    activeTarget: 'Active Target',
+    ammunition: 'Ammunition',
+    charge: 'Charge',
+    chargeRing: 'Charge / Ring',
+    autoCharge: 'Auto Ring',
+    manualCharge: 'Manual',
+    milCircle: 'Mil Circle',
+    maxRange: 'Max Range',
+    minRange: 'Min Range',
+    
+    // Coordinates & Grid
+    coordinates: 'COORDINATES',
+    grid: 'Grid',
+    worldX: 'World X',
+    worldY: 'World Y',
+    altitude: 'Altitude (Z)',
+    applyCoords: 'Apply Coordinates',
+    setCoordinates: 'Set Coordinates',
+    
+    // Tools & Actions
+    layers: 'Layers',
+    settings: 'Settings',
+    ballisticTable: 'Ballistic Table',
+    solutionPanel: 'Fire Solution',
+    targets: 'Targets',
+    targetManager: 'Target Manager',
+    wind: 'Wind',
+    missions: 'Missions',
+    resetView: 'Reset View',
+    fullscreen: 'Fullscreen',
+    lockPosition: 'Lock Position',
+    unlockPosition: 'Unlock Position',
+    duplicate: 'Duplicate',
+    delete: 'Delete',
+    rename: 'Rename',
+    saveTarget: 'Save Target',
+    addTarget: 'Add Target',
+    addMortar: 'Add Mortar',
+    expand: 'Expand',
+    collapse: 'Collapse',
+    close: 'Close',
+    exportMission: 'Export Mission',
+    importMission: 'Import Mission',
+    resetDefaults: 'Reset Defaults',
+    
+    // Layers
+    layerTopo: 'Tactical Topographic',
+    layerSatellite: 'Satellite Recon',
+    layerNight: 'Night Vision (FLIR)',
+    layerMinimal: 'Minimalist Vector',
+    gridLines: 'Coordinate Grid',
+    rangeRings: 'Range Rings',
+    distanceLine: 'Firing Vector',
+    landmarks: 'Landmarks & POIs',
+    windIndicator: 'Wind Indicator',
+    contours: 'Elevation Contours',
+    
+    // Settings categories
+    catMap: 'Map & Display',
+    catMortar: 'Mortar & Ammo',
+    catBallistics: 'Ballistics & Solvers',
+    catTargets: 'Target Overlay HUD',
+    catLanguage: 'Language & Locale',
+    catData: 'Data & Missions',
+    
+    // Descriptions
+    selectMap: 'Select Terrain Map',
+    arabicTranslit: 'Show Arabic Place Transliterations',
+    highContrastMode: 'High-Contrast Tactical Mode',
+    targetHudAbove: 'Compact Live Overlay Above Target',
+    mortarHudAbove: 'Compact Live Overlay Above Mortar',
+    
+    // Wind
+    windSpeed: 'Wind Speed (m/s)',
+    windDirection: 'Wind Direction (°)',
+    windConvention: 'Direction Convention',
+    windFrom: 'FROM (Meteorological)',
+    windToward: 'TOWARD (Downwind Vector)',
+    windEnabled: 'Enable Wind Adjustment',
+    resetZeroWind: 'Reset Zero Wind',
+    crosswindMils: 'Crosswind Deflection',
+    rangeWindMeters: 'Range Correction',
+    
+    // Ballistic table view
+    searchRange: 'Search range (m)...',
+    filterCharge: 'Filter by Charge',
+    allCharges: 'All Charges',
+    colRange: 'Range (m)',
+    colElevationMil: 'Elev (mil)',
+    colElevationDeg: 'Elev (°)',
+    colToF: 'ToF (s)',
+    colHeightCorr: 'ΔElev/100m',
+    colPeakAlt: 'Peak (m)',
+    colAngle: 'Angle (°)',
+    colDispersion: 'Disp (m)',
+    sourceNote: 'Ballistic Source & Verification Note',
+  },
+  ar: {
+    appTitle: 'نظام التحكم بنيران الهاون (Arma Reforger FCS)',
+    appSubtitle: 'منظومة الحسابات الباليستية والرمي التكتيكي',
+    
+    // Status & HUD
+    statusValid: 'بيانات صالحة وموثقة',
+    statusOutOfRange: 'الهدف خارج المدى',
+    statusLimitExceeded: 'تجاوز حد زاوية الارتفاع',
+    statusNoData: 'لا تتوفر بيانات موثقة',
+    statusIncomplete: 'جدول الرمي غير مكتمل',
+    statusIdentical: 'الهدف والهاون في نفس النقطة',
+    statusInterpolated: 'مستنتج بين نقطتين',
+    
+    // Measurements
+    elevation: 'زاوية الارتفاع',
+    bearing: 'الاتجاه / السمت',
+    distance: 'المسافة الأفقية',
+    slantRange: 'المسافة المائلة',
+    timeOfFlight: 'زمن التحليق',
+    tofAbbr: 'الزمن',
+    altDiff: 'فارق الارتفاع',
+    targetAlt: 'ارتفاع الهدف',
+    mortarAlt: 'ارتفاع الهاون',
+    peakAlt: 'أعلى ارتفاع',
+    impactAngle: 'زاوية السقوط',
+    dispersion: 'دائرة التشتت',
+    
+    // Mortar & Ammo
+    mortar: 'الهاون',
+    target: 'الهدف',
+    activeMortar: 'الهاون النشط',
+    activeTarget: 'الهدف النشط',
+    ammunition: 'الذخيرة',
+    charge: 'الحشوة',
+    chargeRing: 'الحشوة / الحلقة',
+    autoCharge: 'حشوة تلقائية',
+    manualCharge: 'يدوي',
+    milCircle: 'دائرة المل',
+    maxRange: 'أقصى مدى',
+    minRange: 'أدنى مدى',
+    
+    // Coordinates & Grid
+    coordinates: 'الإحداثيات',
+    grid: 'الشبكة التربيعية',
+    worldX: 'الإحداثي السيني X',
+    worldY: 'الإحداثي الصادي Y',
+    altitude: 'الارتفاع Z',
+    applyCoords: 'تطبيق الإحداثيات',
+    setCoordinates: 'تحديد الإحداثيات',
+    
+    // Tools & Actions
+    layers: 'الطبقات',
+    settings: 'الإعدادات',
+    ballisticTable: 'جدول الرماية',
+    solutionPanel: 'حل الرمي',
+    targets: 'الأهداف',
+    targetManager: 'إدارة الأهداف',
+    wind: 'الرياح',
+    missions: 'المهام',
+    resetView: 'إعادة ضبط الخريطة',
+    fullscreen: 'شاشة كاملة',
+    lockPosition: 'قفل الموقع',
+    unlockPosition: 'إلغاء القفل',
+    duplicate: 'تكرار',
+    delete: 'حذف',
+    rename: 'إعادة التسمية',
+    saveTarget: 'حفظ الهدف',
+    addTarget: 'إضافة هدف',
+    addMortar: 'إضافة هاون',
+    expand: 'توسيع',
+    collapse: 'تصغير',
+    close: 'إغلاق',
+    exportMission: 'تصدير المهمة',
+    importMission: 'استيراد مهمة',
+    resetDefaults: 'استعادة الافتراضي',
+    
+    // Layers
+    layerTopo: 'طبوغرافي تكتيكي',
+    layerSatellite: 'استطلاع أقمار صناعية',
+    layerNight: 'رؤية ليلية حرارية',
+    layerMinimal: 'متجه مبسط',
+    gridLines: 'خطوط الشبكة التربيعية',
+    rangeRings: 'دوائر المدى التكتيكية',
+    distanceLine: 'خط الرمي والتوجيه',
+    landmarks: 'المعالم والمواقع المهمة',
+    windIndicator: 'مؤشر الرياح',
+    contours: 'خطوط الارتفاع الكنتورية',
+    
+    // Settings categories
+    catMap: 'الخريطة والعرض',
+    catMortar: 'الهاون والذخائر',
+    catBallistics: 'الحسابات الباليستية',
+    catTargets: 'مؤشر معلومات الهدف',
+    catLanguage: 'اللغة والاتجاه',
+    catData: 'البيانات والمهام',
+    
+    // Descriptions
+    selectMap: 'اختر خريطة التضاريس',
+    arabicTranslit: 'عرض الترجمة الصوتية للمعالم',
+    highContrastMode: 'وضع التباين العالي التكتيكي',
+    targetHudAbove: 'عرض مؤشر المعلومات المباشر أعلى الهدف',
+    mortarHudAbove: 'عرض مؤشر المعلومات أعلى الهاون',
+    
+    // Wind
+    windSpeed: 'سرعة الرياح (م/ث)',
+    windDirection: 'اتجاه الرياح (درجة)',
+    windConvention: 'اصطلاح اتجاه الرياح',
+    windFrom: 'قادمة من (أرصاد جوية)',
+    windToward: 'متجهة نحو (مسار الريح)',
+    windEnabled: 'تفعيل تصحيح الرياح',
+    resetZeroWind: 'تصفير الرياح',
+    crosswindMils: 'انحراف الرياح الجانبية',
+    rangeWindMeters: 'تصحيح المدى الأمامي/الخلفي',
+    
+    // Ballistic table view
+    searchRange: 'ابحث بالمدى (م)...',
+    filterCharge: 'تصفية حسب الحشوة',
+    allCharges: 'جميع الحشوات',
+    colRange: 'المدى (م)',
+    colElevationMil: 'الارتفاع (مل)',
+    colElevationDeg: 'الارتفاع (°)',
+    colToF: 'الزمن (ث)',
+    colHeightCorr: 'Δمل/100م',
+    colPeakAlt: 'الذروة (م)',
+    colAngle: 'الزاوية (°)',
+    colDispersion: 'التشتت (م)',
+    sourceNote: 'مصدر بيانات الرماية وحالة التوثيق',
+  },
+};
+
+export type TranslationKey = keyof typeof TRANSLATIONS.en;
+
+export function t(key: TranslationKey, lang: LanguageCode = 'en'): string {
+  return TRANSLATIONS[lang]?.[key] || TRANSLATIONS.en[key] || key;
+}

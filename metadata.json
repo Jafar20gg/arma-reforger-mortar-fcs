@@ -1,0 +1,6 @@
+{
+  "name": "Arma Reforger Mortar FCS",
+  "description": "Next-generation tactical mortar fire-control and ballistic computation system for Arma Reforger with high-accuracy map coordinates, US M252 81mm and Russian 2B14 82mm tables, live target telemetry, and mission management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
