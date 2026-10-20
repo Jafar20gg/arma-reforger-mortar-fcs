@@ -18,6 +18,7 @@ import {
   Languages,
   ShieldAlert,
   ChevronDown,
+  MapPin,
 } from 'lucide-react';
 
 interface TopToolbarProps {
@@ -27,6 +28,10 @@ interface TopToolbarProps {
   allTargets: TargetInstance[];
   solution: FiringSolution;
   settings: FCSSettings;
+  placementMode: 'none' | 'mortar' | 'target';
+  onTogglePlaceMortar: () => void;
+  onTogglePlaceTarget: () => void;
+  onOpenCoordsModal: () => void;
   onSelectMap: (mapId: string) => void;
   onSelectMortarSystem: (systemId: MortarId) => void;
   onSelectAmmo: (ammoId: string) => void;
@@ -44,6 +49,10 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
   allTargets,
   solution,
   settings,
+  placementMode,
+  onTogglePlaceMortar,
+  onTogglePlaceTarget,
+  onOpenCoordsModal,
   onSelectMap,
   onSelectMortarSystem,
   onSelectAmmo,
@@ -101,6 +110,44 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
               </option>
             ))}
           </select>
+
+          {/* Dedicated Place Mortar Button */}
+          <button
+            onClick={onTogglePlaceMortar}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-md border font-bold text-xs transition-all ${
+              placementMode === 'mortar'
+                ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.6)] animate-pulse'
+                : 'bg-slate-900 border-cyan-500/40 text-cyan-400 hover:bg-slate-800 hover:border-cyan-400'
+            }`}
+            title={t('placeMortar', lang)}
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t('placeMortar', lang)}</span>
+          </button>
+
+          {/* Dedicated Place Target Button */}
+          <button
+            onClick={onTogglePlaceTarget}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-md border font-bold text-xs transition-all ${
+              placementMode === 'target'
+                ? 'bg-amber-500/30 border-amber-400 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.6)] animate-pulse'
+                : 'bg-slate-900 border-amber-500/40 text-amber-400 hover:bg-slate-800 hover:border-amber-400'
+            }`}
+            title={t('placeTarget', lang)}
+          >
+            <Target className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t('placeTarget', lang)}</span>
+          </button>
+
+          {/* Quick Coordinate & Altitude Input Modal Button */}
+          <button
+            onClick={onOpenCoordsModal}
+            className="flex items-center gap-1 px-2 py-1 rounded-md border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-slate-100 text-xs transition-all"
+            title={t('quickCoords', lang)}
+          >
+            <Compass className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden lg:inline">{t('quickCoords', lang)}</span>
+          </button>
         </div>
 
         {/* Center Zone: Live Primary Elevation & Range HUD Strip */}

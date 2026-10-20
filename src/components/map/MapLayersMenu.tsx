@@ -91,11 +91,31 @@ export const MapLayersMenu: React.FC<MapLayersMenuProps> = ({
           </label>
 
           <label className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 cursor-pointer">
-            <span className="text-slate-200">{t('rangeRings', language)}</span>
+            <span className="text-slate-200">{t('maxRangeRing', language)}</span>
             <input
               type="checkbox"
-              checked={settings.showRangeRings}
-              onChange={(e) => onUpdateSettings({ showRangeRings: e.target.checked })}
+              checked={settings.showMaxRangeRing}
+              onChange={(e) => onUpdateSettings({ showMaxRangeRing: e.target.checked })}
+              className="accent-amber-500 cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 cursor-pointer">
+            <span className="text-slate-200">{t('targetDistanceRing', language)}</span>
+            <input
+              type="checkbox"
+              checked={settings.showTargetDistanceRing}
+              onChange={(e) => onUpdateSettings({ showTargetDistanceRing: e.target.checked })}
+              className="accent-amber-500 cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 cursor-pointer">
+            <span className="text-slate-200">{t('customDistanceRings', language)}</span>
+            <input
+              type="checkbox"
+              checked={settings.showCustomRings}
+              onChange={(e) => onUpdateSettings({ showCustomRings: e.target.checked })}
               className="accent-amber-500 cursor-pointer"
             />
           </label>
@@ -106,6 +126,16 @@ export const MapLayersMenu: React.FC<MapLayersMenuProps> = ({
               type="checkbox"
               checked={settings.showDistanceLine}
               onChange={(e) => onUpdateSettings({ showDistanceLine: e.target.checked })}
+              className="accent-amber-500 cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800/80 cursor-pointer">
+            <span className="text-slate-200">{t('bearingLine', language)}</span>
+            <input
+              type="checkbox"
+              checked={settings.showBearingLine}
+              onChange={(e) => onUpdateSettings({ showBearingLine: e.target.checked })}
               className="accent-amber-500 cursor-pointer"
             />
           </label>

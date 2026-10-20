@@ -10,6 +10,7 @@ import { BallisticSolver } from './services/ballisticSolver';
 import { StorageService, DEFAULT_SETTINGS, SavedMission } from './services/storageService';
 import { TacticalMap } from './components/map/TacticalMap';
 import { TopToolbar } from './components/hud/TopToolbar';
+import { QuickCoordsModal } from './components/hud/QuickCoordsModal';
 import { BallisticPanel } from './components/ballistics/BallisticPanel';
 import { BallisticTable } from './components/ballistics/BallisticTable';
 import { TargetManager } from './components/target/TargetManager';
@@ -21,6 +22,10 @@ export default function App() {
   // Settings & Preferences
   const [settings, setSettings] = useState<FCSSettings>(() => StorageService.loadSettings());
   const [currentMapId, setCurrentMapId] = useState<string>(() => StorageService.loadActiveMapId());
+
+  // Interactive Placement Mode ('none' | 'mortar' | 'target')
+  const [placementMode, setPlacementMode] = useState<'none' | 'mortar' | 'target'>('none');
+  const [isCoordsModalOpen, setIsCoordsModalOpen] = useState(false);
 
   const currentMap = useMemo(() => getMapDefinition(currentMapId), [currentMapId]);
 
@@ -112,6 +117,18 @@ export default function App() {
   useEffect(() => {
     StorageService.saveActiveMapId(currentMapId);
   }, [currentMapId]);
+
+  // Escape key handler to cancel placement mode or close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPlacementMode('none');
+        setIsCoordsModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Language & Direction change
   useEffect(() => {
@@ -266,6 +283,8 @@ export default function App() {
         target={activeTarget}
         solution={solution}
         settings={settings}
+        placementMode={placementMode}
+        onCancelPlacement={() => setPlacementMode('none')}
         onUpdateMortarPos={handleUpdateMortarPos}
         onUpdateTargetPos={handleUpdateTargetPos}
         onToggleTargetOverlay={handleToggleTargetOverlay}
@@ -283,6 +302,10 @@ export default function App() {
         allTargets={targets}
         solution={solution}
         settings={settings}
+        placementMode={placementMode}
+        onTogglePlaceMortar={() => setPlacementMode((m) => (m === 'mortar' ? 'none' : 'mortar'))}
+        onTogglePlaceTarget={() => setPlacementMode((m) => (m === 'target' ? 'none' : 'target'))}
+        onOpenCoordsModal={() => setIsCoordsModalOpen(true)}
         onSelectMap={handleSelectMap}
         onSelectMortarSystem={(sysId) => {
           const sys = MORTAR_SYSTEMS[sysId];
@@ -302,6 +325,23 @@ export default function App() {
           setSettings((s) => ({ ...s, language: s.language === 'en' ? 'ar' : 'en' }))
         }
       />
+
+      {/* Quick Coordinates & Altitude Input Modal */}
+      {isCoordsModalOpen && (
+        <QuickCoordsModal
+          mapDef={currentMap}
+          mortar={mortar}
+          target={activeTarget}
+          language={settings.language}
+          onClose={() => setIsCoordsModalOpen(false)}
+          onApply={(newMortarPos, newTargetPos) => {
+            setMortar((m) => ({ ...m, position: newMortarPos }));
+            setTargets((prev) =>
+              prev.map((t) => (t.id === activeTargetId ? { ...t, position: newTargetPos } : t))
+            );
+          }}
+        />
+      )}
 
       {/* 3. Live Ballistic Fire Solution Drawer */}
       {settings.isSolutionPanelOpen && (

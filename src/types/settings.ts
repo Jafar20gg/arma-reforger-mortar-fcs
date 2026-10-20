@@ -23,7 +23,11 @@ export interface FCSSettings {
   showMapLabels: boolean;
   showArabicLandmarks: boolean;
   showDistanceLine: boolean;
+  showBearingLine: boolean;
   showRangeRings: boolean;
+  showMaxRangeRing: boolean;
+  showTargetDistanceRing: boolean;
+  showCustomRings: boolean;
   showTargetOverlay: boolean;
   showMortarOverlay: boolean;
   showWindArrow: boolean;

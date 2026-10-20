@@ -27,6 +27,8 @@ interface TacticalMapProps {
   target: TargetInstance;
   solution: FiringSolution;
   settings: FCSSettings;
+  placementMode?: 'none' | 'mortar' | 'target';
+  onCancelPlacement?: () => void;
   onUpdateMortarPos: (pos: WorldCoordinate) => void;
   onUpdateTargetPos: (pos: WorldCoordinate) => void;
   onToggleTargetOverlay: () => void;
@@ -42,6 +44,8 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
   target,
   solution,
   settings,
+  placementMode = 'none',
+  onCancelPlacement,
   onUpdateMortarPos,
   onUpdateTargetPos,
   onToggleTargetOverlay,
@@ -75,6 +79,18 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
 
   const isOutOfRange = solution.statusCode === 'OUT_OF_RANGE';
 
+  const placementModeRef = useRef(placementMode);
+  placementModeRef.current = placementMode;
+
+  const onCancelPlacementRef = useRef(onCancelPlacement);
+  onCancelPlacementRef.current = onCancelPlacement;
+
+  const mortarLockedRef = useRef(mortar.locked);
+  mortarLockedRef.current = mortar.locked;
+
+  const targetLockedRef = useRef(target.locked);
+  targetLockedRef.current = target.locked;
+
   // 1. Initialize Map Instance
   useEffect(() => {
     if (!mapDivRef.current) return;
@@ -91,8 +107,8 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
     const mapExtentY = mapDef.tileConfig ? 256 : (mapDef.height / 256);
 
     const maxBounds = L.latLngBounds(
-      L.latLng(-12, -12),
-      L.latLng(mapExtentY + 12, mapExtentX + 12)
+      L.latLng(-20, -20),
+      L.latLng(mapExtentY + 20, mapExtentX + 20)
     );
 
     // Initial View: Focus directly on the active tactical engagement zone
@@ -145,25 +161,22 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
     landmarksLayerRef.current = L.layerGroup().addTo(map);
 
     // Create DOM nodes for React portals inside Leaflet MarkerPane
+    // Note: Do NOT call disableClickPropagation on mNode/tNode, because that blocks Leaflet's MarkerDrag handler!
     const mNode = document.createElement('div');
     mNode.className = 'tactical-mortar-portal';
-    L.DomEvent.disableClickPropagation(mNode);
-    L.DomEvent.disableScrollPropagation(mNode);
     setMortarPortalNode(mNode);
 
     const tNode = document.createElement('div');
     tNode.className = 'tactical-target-portal';
-    L.DomEvent.disableClickPropagation(tNode);
-    L.DomEvent.disableScrollPropagation(tNode);
     setTargetPortalNode(tNode);
 
-    // Create Leaflet Markers
+    // Create Leaflet Markers with proper touch hit dimensions (44x44px centered at 22,22)
     const mortarMarker = L.marker(L.latLng(mortarLatLng.lat, mortarLatLng.lng), {
       icon: L.divIcon({
         html: mNode,
         className: 'tactical-div-icon',
-        iconSize: [0, 0],
-        iconAnchor: [0, 0],
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
       }),
       draggable: !mortar.locked,
       zIndexOffset: 1000,
@@ -174,28 +187,28 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
       icon: L.divIcon({
         html: tNode,
         className: 'tactical-div-icon',
-        iconSize: [0, 0],
-        iconAnchor: [0, 0],
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
       }),
       draggable: !target.locked,
       zIndexOffset: 2000,
     }).addTo(map);
     targetMarkerRef.current = targetMarker;
 
-    // Drag listeners on markers
-    mortarMarker.on('drag', (e) => {
+    // Smooth drag handlers for both desktop pointer and mobile touch
+    mortarMarker.on('drag dragend', (e) => {
       const latlng = (e.target as L.Marker).getLatLng();
       const world = CoordinateService.latLngToWorld({ lat: latlng.lat, lng: latlng.lng }, mapDef);
       onUpdateMortarPos({ ...world, z: mortar.position.z });
     });
 
-    targetMarker.on('drag', (e) => {
+    targetMarker.on('drag dragend', (e) => {
       const latlng = (e.target as L.Marker).getLatLng();
       const world = CoordinateService.latLngToWorld({ lat: latlng.lat, lng: latlng.lng }, mapDef);
       onUpdateTargetPos({ ...world, z: target.position.z });
     });
 
-    // Map Event listeners
+    // Map mouse movement for bottom coordinate readouts
     map.on('mousemove', (e) => {
       const world = CoordinateService.latLngToWorld({ lat: e.latlng.lat, lng: e.latlng.lng }, mapDef);
       setCursorWorld(world);
@@ -205,10 +218,13 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
       setMapZoom(map.getZoom());
     });
 
-    // Map click: Deliberately place target if click falls inside island territory
+    // Map click: dedicated placement modes
     map.on('click', (e) => {
+      const mode = placementModeRef.current;
+      if (!mode || mode === 'none') {
+        return; // Do not accidentally move markers when clicking freely on the map!
+      }
       const world = CoordinateService.latLngToWorld({ lat: e.latlng.lat, lng: e.latlng.lng }, mapDef);
-      // Ignore clicks outside verified island terrain
       if (
         world.x < 0 ||
         world.x > mapDef.width ||
@@ -217,8 +233,16 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
       ) {
         return;
       }
-      if (!target.locked) {
-        onUpdateTargetPos({ ...world, z: target.position.z });
+      if (mode === 'mortar') {
+        if (!mortarLockedRef.current) {
+          onUpdateMortarPos({ ...world, z: mortar.position.z });
+          onCancelPlacementRef.current?.();
+        }
+      } else if (mode === 'target') {
+        if (!targetLockedRef.current) {
+          onUpdateTargetPos({ ...world, z: target.position.z });
+          onCancelPlacementRef.current?.();
+        }
       }
     });
 
@@ -461,35 +485,37 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
       return pts;
     };
 
-    // User configured tactical range rings
-    settings.customRangeRings
-      .filter((r) => r.enabled && r.distance > 0)
-      .forEach((ring) => {
-        const pts = generateCircleLatLngs(ring.distance);
-        L.polygon(pts, {
-          color: ring.color,
-          weight: 1,
-          opacity: 0.5,
-          fill: false,
-          dashArray: '4, 4',
-          interactive: false,
-        }).addTo(layer);
+    // 1. User configured tactical range rings (custom distance rings)
+    if (settings.showRangeRings && settings.showCustomRings) {
+      settings.customRangeRings
+        .filter((r) => r.enabled && r.distance > 0)
+        .forEach((ring) => {
+          const pts = generateCircleLatLngs(ring.distance);
+          L.polygon(pts, {
+            color: ring.color,
+            weight: 1,
+            opacity: 0.5,
+            fill: false,
+            dashArray: '4, 4',
+            interactive: false,
+          }).addTo(layer);
 
-        // Distance label marker at North apex
-        const topCoord = { x: mortar.position.x, y: mortar.position.y + ring.distance };
-        const topLL = CoordinateService.worldToLatLng(topCoord, mapDef);
-        L.marker(L.latLng(topLL.lat, topLL.lng), {
-          icon: L.divIcon({
-            className: 'tactical-div-icon',
-            html: `<div style="color:${ring.color};font-family:monospace;font-size:9px;opacity:0.85;white-space:nowrap;transform:translate(-50%,-16px);pointer-events:none;">${ring.label}</div>`,
-            iconSize: [0, 0],
-          }),
-          interactive: false,
-        }).addTo(layer);
-      });
+          // Distance label marker at North apex
+          const topCoord = { x: mortar.position.x, y: mortar.position.y + ring.distance };
+          const topLL = CoordinateService.worldToLatLng(topCoord, mapDef);
+          L.marker(L.latLng(topLL.lat, topLL.lng), {
+            icon: L.divIcon({
+              className: 'tactical-div-icon',
+              html: `<div style="color:${ring.color};font-family:monospace;font-size:9px;opacity:0.85;white-space:nowrap;transform:translate(-50%,-16px);pointer-events:none;">${ring.label}</div>`,
+              iconSize: [0, 0],
+            }),
+            interactive: false,
+          }).addTo(layer);
+        });
+    }
 
-    // Target Distance Ring (Dynamic Amber)
-    if (solution.horizontalDistance > 10) {
+    // 2. Target Distance Ring (Dynamic Amber)
+    if (settings.showRangeRings && settings.showTargetDistanceRing && solution.horizontalDistance > 10) {
       const tgtPts = generateCircleLatLngs(solution.horizontalDistance);
       L.polygon(tgtPts, {
         color: '#f59e0b',
@@ -501,87 +527,109 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
       }).addTo(layer);
     }
 
-    // Maximum Weapon Range Ring (Prominent Red Dashed Circle)
-    const maxRange = solution.maxVerifiedRange ?? 4900;
-    const maxPts = generateCircleLatLngs(maxRange);
-    L.polygon(maxPts, {
-      color: '#ef4444',
-      weight: 1.75,
-      opacity: 0.85,
-      fill: false,
-      dashArray: '8, 6',
-      interactive: false,
-    }).addTo(layer);
+    // 3. Maximum Weapon Range Ring (Prominent Red Dashed Circle)
+    if (settings.showRangeRings && settings.showMaxRangeRing) {
+      const maxRange = solution.maxVerifiedRange ?? 4900;
+      const maxPts = generateCircleLatLngs(maxRange);
+      L.polygon(maxPts, {
+        color: '#ef4444',
+        weight: 1.75,
+        opacity: 0.85,
+        fill: false,
+        dashArray: '8, 6',
+        interactive: false,
+      }).addTo(layer);
 
-    // Max Range Label
-    const maxTopCoord = { x: mortar.position.x, y: mortar.position.y + maxRange };
-    const maxTopLL = CoordinateService.worldToLatLng(maxTopCoord, mapDef);
-    L.marker(L.latLng(maxTopLL.lat, maxTopLL.lng), {
-      icon: L.divIcon({
-        className: 'tactical-div-icon',
-        html: `<div style="color:#ef4444;background:rgba(2,6,23,0.85);border:1px solid rgba(239,68,68,0.5);padding:1px 4px;border-radius:3px;font-family:monospace;font-size:9px;font-weight:bold;white-space:nowrap;transform:translate(-50%,-20px);pointer-events:none;">MAX WEAPON RANGE (${maxRange}m)</div>`,
-        iconSize: [0, 0],
-      }),
-      interactive: false,
-    }).addTo(layer);
+      // Max Range Label
+      const maxTopCoord = { x: mortar.position.x, y: mortar.position.y + maxRange };
+      const maxTopLL = CoordinateService.worldToLatLng(maxTopCoord, mapDef);
+      L.marker(L.latLng(maxTopLL.lat, maxTopLL.lng), {
+        icon: L.divIcon({
+          className: 'tactical-div-icon',
+          html: `<div style="color:#ef4444;background:rgba(2,6,23,0.85);border:1px solid rgba(239,68,68,0.5);padding:1px 4px;border-radius:3px;font-family:monospace;font-size:9px;font-weight:bold;white-space:nowrap;transform:translate(-50%,-20px);pointer-events:none;">MAX WEAPON RANGE (${maxRange}m)</div>`,
+          iconSize: [0, 0],
+        }),
+        interactive: false,
+      }).addTo(layer);
+    }
   }, [
     mortar.position.x,
     mortar.position.y,
     solution.horizontalDistance,
     solution.maxVerifiedRange,
     settings.showRangeRings,
+    settings.showMaxRangeRing,
+    settings.showTargetDistanceRing,
+    settings.showCustomRings,
     settings.customRangeRings,
     mapDef,
   ]);
 
-  // 8. Render Firing Vector Line & Midpoint Telemetry Badge
+  // 8. Render Firing Vector Line & Bearing Ray
   useEffect(() => {
     const layer = vectorLineLayerRef.current;
     if (!layer) return;
     layer.clearLayers();
 
-    if (!settings.showDistanceLine) return;
-
     const mLL = CoordinateService.worldToLatLng(mortar.position, mapDef);
     const tLL = CoordinateService.worldToLatLng(target.position, mapDef);
 
-    // Firing line
-    L.polyline(
-      [
-        [mLL.lat, mLL.lng],
-        [tLL.lat, tLL.lng],
-      ],
-      {
-        color: '#f59e0b',
-        weight: 2,
-        opacity: 0.9,
-        dashArray: '6, 4',
+    // Firing line (between mortar and target)
+    if (settings.showDistanceLine) {
+      L.polyline(
+        [
+          [mLL.lat, mLL.lng],
+          [tLL.lat, tLL.lng],
+        ],
+        {
+          color: '#f59e0b',
+          weight: 2,
+          opacity: 0.9,
+          dashArray: '6, 4',
+          interactive: false,
+        }
+      ).addTo(layer);
+
+      // Midpoint Telemetry Badge
+      const midLat = (mLL.lat + tLL.lat) / 2;
+      const midLng = (mLL.lng + tLL.lng) / 2;
+
+      const elevBadge = solution.elevationMil
+        ? `${solution.elevationMil} mil`
+        : isOutOfRange
+        ? 'OUT OF RANGE'
+        : '--';
+
+      L.marker(L.latLng(midLat, midLng), {
+        icon: L.divIcon({
+          className: 'tactical-div-icon',
+          html: `
+            <div style="background:#020617;border:1px solid #f59e0b;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:10px;font-weight:bold;color:#fbbf24;white-space:nowrap;transform:translate(-50%,-50%);box-shadow:0 2px 6px rgba(0,0,0,0.8);pointer-events:none;">
+              ${Math.round(solution.horizontalDistance)}m · ${solution.bearingDeg.toFixed(1)}° · ${elevBadge}
+            </div>
+          `,
+          iconSize: [0, 0],
+        }),
         interactive: false,
-      }
-    ).addTo(layer);
+      }).addTo(layer);
+    }
 
-    // Midpoint Telemetry Badge
-    const midLat = (mLL.lat + tLL.lat) / 2;
-    const midLng = (mLL.lng + tLL.lng) / 2;
+    // Azimuth Bearing Ray (Forward firing direction ray)
+    if (settings.showBearingLine) {
+      const rayDistance = Math.max(5000, (solution.maxVerifiedRange ?? 4900) * 1.15);
+      const rad = (solution.bearingDeg * Math.PI) / 180;
+      const rayEndX = mortar.position.x + rayDistance * Math.sin(rad);
+      const rayEndY = mortar.position.y + rayDistance * Math.cos(rad);
+      const endLL = CoordinateService.worldToLatLng({ x: rayEndX, y: rayEndY }, mapDef);
 
-    const elevBadge = solution.elevationMil
-      ? `${solution.elevationMil} mil`
-      : isOutOfRange
-      ? 'OUT OF RANGE'
-      : '--';
-
-    L.marker(L.latLng(midLat, midLng), {
-      icon: L.divIcon({
-        className: 'tactical-div-icon',
-        html: `
-          <div style="background:#020617;border:1px solid #f59e0b;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:10px;font-weight:bold;color:#fbbf24;white-space:nowrap;transform:translate(-50%,-50%);box-shadow:0 2px 6px rgba(0,0,0,0.8);pointer-events:none;">
-            ${Math.round(solution.horizontalDistance)}m · ${solution.bearingDeg.toFixed(1)}° · ${elevBadge}
-          </div>
-        `,
-        iconSize: [0, 0],
-      }),
-      interactive: false,
-    }).addTo(layer);
+      L.polyline([[mLL.lat, mLL.lng], [endLL.lat, endLL.lng]], {
+        color: '#38bdf8',
+        weight: 1.25,
+        opacity: 0.65,
+        dashArray: '4, 6',
+        interactive: false,
+      }).addTo(layer);
+    }
   }, [
     mortar.position.x,
     mortar.position.y,
@@ -591,7 +639,9 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
     solution.bearingDeg,
     solution.elevationMil,
     solution.statusCode,
+    solution.maxVerifiedRange,
     settings.showDistanceLine,
+    settings.showBearingLine,
     mapDef,
     isOutOfRange,
   ]);
@@ -704,7 +754,9 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden select-none transition-colors duration-300"
+      className={`relative w-full h-full overflow-hidden select-none transition-colors duration-300 ${
+        placementMode && placementMode !== 'none' ? 'cursor-crosshair' : ''
+      }`}
       style={{ backgroundColor: mapBgColor }}
     >
       {/* 1. Leaflet Tactical Viewport (100% of Screen) */}
@@ -714,6 +766,28 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
         className="absolute inset-0 w-full h-full z-0 pointer-events-auto"
         style={{ backgroundColor: mapBgColor }}
       />
+
+      {/* Active Placement Mode Tactical Banner */}
+      {placementMode && placementMode !== 'none' && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 max-w-lg w-[90%] bg-slate-950/95 border-2 border-amber-500 rounded-xl px-4 py-2.5 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 animate-pulse pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-amber-400 animate-ping shrink-0" />
+            <div className="font-mono text-xs font-bold text-amber-300">
+              {placementMode === 'mortar'
+                ? (settings.language === 'ar' ? '📍 وضع تحديد موقع الهاون: انقر على الخريطة لتثبيت الموقع' : '📍 MORTAR PLACEMENT ACTIVE: Click anywhere on terrain to relocate mortar')
+                : (settings.language === 'ar' ? '🎯 وضع تحديد موقع الهدف: انقر على الخريطة لتثبيت الهدف' : '🎯 TARGET PLACEMENT ACTIVE: Click anywhere on terrain to set target')}
+            </div>
+          </div>
+          {onCancelPlacement && (
+            <button
+              onClick={onCancelPlacement}
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono font-bold rounded border border-slate-600 transition-colors"
+            >
+              {settings.language === 'ar' ? 'إلغاء' : 'Cancel'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 2. Diagnostic Warning if Map Tiles are Unavailable (e.g. Kolguyev) */}
       {!mapDef.tilesAvailable && (
@@ -750,12 +824,15 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
       {/* 4. React Portals for Markers inside Leaflet MarkerPane */}
       {mortarPortalNode &&
         createPortal(
-          <div
-            className="relative cursor-grab active:cursor-grabbing select-none"
-            style={{ transform: 'translate(-50%, -50%)' }}
-          >
+          <div className="relative w-11 h-11 flex items-center justify-center select-none" style={{ touchAction: 'none' }}>
             {/* Mortar Telemetry Tag */}
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-auto font-mono text-[10px] bg-slate-950/95 border border-cyan-500/50 rounded-lg shadow-xl px-2.5 py-1.5 whitespace-nowrap text-slate-100 backdrop-blur-md">
+            <div
+              className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-auto font-mono text-[10px] bg-slate-950/95 border border-cyan-500/50 rounded-lg shadow-xl px-2.5 py-1.5 whitespace-nowrap text-slate-100 backdrop-blur-md"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center gap-2 border-b border-slate-800 pb-1 mb-1">
                 <span className="font-bold text-cyan-400 tracking-wide">{mortar.name}</span>
                 <span className="text-slate-400 font-mono">[{CoordinateService.worldToGrid(mortar.position, 6)}]</span>
@@ -776,9 +853,15 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
               </div>
             </div>
 
-            {/* Reticle Symbol */}
-            <div className="relative flex items-center justify-center w-10 h-10">
-              <svg viewBox="0 0 40 40" className="w-10 h-10 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            {/* Reticle Symbol (The draggable handle) */}
+            <div
+              className={`w-10 h-10 flex items-center justify-center select-none ${
+                mortar.locked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
+              }`}
+              style={{ touchAction: 'none' }}
+              title={mortar.locked ? "Mortar Locked" : "Drag to move Mortar"}
+            >
+              <svg viewBox="0 0 40 40" className="w-10 h-10 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] pointer-events-none">
                 <circle cx="20" cy="20" r="14" fill="#090d16" stroke="#06b6d4" strokeWidth="2" />
                 <line x1="12" y1="28" x2="20" y2="18" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" />
                 <line x1="28" y1="28" x2="20" y2="18" stroke="#06b6d4" strokeWidth="2.5" strokeLinecap="round" />
@@ -795,26 +878,37 @@ export const TacticalMap: React.FC<TacticalMapProps> = ({
 
       {targetPortalNode &&
         createPortal(
-          <div
-            className="relative cursor-grab active:cursor-grabbing select-none"
-            style={{ transform: 'translate(-50%, -50%)' }}
-          >
+          <div className="relative w-11 h-11 flex items-center justify-center select-none" style={{ touchAction: 'none' }}>
             {/* Attached Floating Target HUD Overlay */}
             {target.showOverlay && (
-              <TargetInfoOverlay
-                target={target}
-                solution={solution}
-                language={settings.language}
-                onToggleExpand={onToggleTargetOverlay}
-                onToggleLock={onToggleTargetLock}
-                onDuplicate={onDuplicateTarget}
-                onDelete={onDeleteTarget}
-              />
+              <div
+                className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 pointer-events-auto"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <TargetInfoOverlay
+                  target={target}
+                  solution={solution}
+                  language={settings.language}
+                  onToggleExpand={onToggleTargetOverlay}
+                  onToggleLock={onToggleTargetLock}
+                  onDuplicate={onDuplicateTarget}
+                  onDelete={onDeleteTarget}
+                />
+              </div>
             )}
 
-            {/* Target Reticle */}
-            <div className="relative flex items-center justify-center w-9 h-9">
-              <svg viewBox="0 0 36 36" className="w-9 h-9 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            {/* Target Reticle (The draggable handle) */}
+            <div
+              className={`w-10 h-10 flex items-center justify-center select-none ${
+                target.locked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
+              }`}
+              style={{ touchAction: 'none' }}
+              title={target.locked ? "Target Locked" : "Drag to move Target"}
+            >
+              <svg viewBox="0 0 36 36" className="w-9 h-9 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] pointer-events-none">
                 <circle cx="18" cy="18" r="12" fill="none" stroke={target.color || '#f59e0b'} strokeWidth="1.5" />
                 <circle cx="18" cy="18" r="3" fill={target.color || '#f59e0b'} />
                 <line x1="18" y1="2" x2="18" y2="10" stroke={target.color || '#f59e0b'} strokeWidth="1.75" />

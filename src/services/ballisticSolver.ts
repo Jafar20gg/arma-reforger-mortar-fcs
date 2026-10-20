@@ -239,7 +239,7 @@ export class BallisticSolver {
     // 5. Elevation Limits Validation
     if (finalElevMil < mortarDef.minElevationMil || finalElevMil > mortarDef.maxElevationMil) {
       return {
-        ...baseSolution,
+        ...solutionWithLimits,
         charge: selectedCharge,
         rawElevationMil: Math.round(rawElevMil),
         heightCorrectionMil,
